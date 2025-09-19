@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd">
+	<sub-flow name="compound-employee-login-implemenation-flow" doc:id="65fa61f1-c833-4bcc-9d08-f38413e84409" >
+<ee:transform doc:name="Set Credentials"
+			doc:id="c664c6c6-8f68-46aa-a0a3-64d6f7c66830">
+			<ee:message>
+				<ee:set-payload resource="dwl/setCredentials.dwl" />
+			</ee:message>
+		</ee:transform>
+		<wsc:consume operation="login"
+			doc:id="701e30e5-0b56-43ce-af78-9368f6580590"
+			config-ref="successfactors-ws-consumer-config-login" doc:name="Login" />
+		<ee:transform doc:name="Set SessionId"
+			doc:id="cc8eed83-51c8-4a19-b556-43a4b5be6202">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="sessionId"><![CDATA[%dw 2.0
+output application/java
+ns urn urn:sfobject.sfapi.successfactors.com
+---
+payload.body.urn#loginResponse.urn#result.urn#sessionId default ""]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<json-logger:logger
+			doc:name="Show SF Login Response"
+			doc:id="ce742c27-6956-4dbc-a054-59e95ebf429c"
+			config-ref="JSON_Logger_Config" message="Show SF Login Response"
+			tracePoint="AFTER_REQUEST"
+			category="com.louisvuitton.technical"
+			priority="DEBUG">
+			<json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json indent = false ---
+{
+    SessionId: JSONLoggerModule::stringifyNonJSON(vars.sessionId) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<flow-ref
+			doc:name="compound-employee-query-implemenation-flow"
+			doc:id="3a58245d-c3ab-408f-a478-97283b47044f"
+			name="compound-employee-query-implemenation-flow" />	
+	</sub-flow>
+	<sub-flow name="compound-employee-query-implemenation-flow" doc:id="f2db1e66-d207-4b73-bc10-db003360532a" >
+<ee:transform doc:name="Build Query, Cookie, queryResult"
+			doc:id="51095a89-0a6e-4771-8468-43416f56f020">
+			<ee:message>
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns ns0 urn:sfobject.sfapi.successfactors.com
+var queryBuilder = "select ${payroll.fields} from compoundemployee where $(vars.condition)"	
+---
+{
+	ns0#query: {
+		ns0#queryString: queryBuilder,
+		(vars.queryParamsList default [] map using(item = $ splitBy "=") ns0#param: {
+                ns0#name: 	item[0],
+                ns0#value: 	item[1],
+        })
+	}
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="cookie"><![CDATA[%dw 2.0
+output application/java
+---
+"JSESSIONID=$(vars.sessionId)" ]]></ee:set-variable>
+
+				<ee:set-variable variableName="queryResult"><![CDATA[%dw 2.0
+output application/json indent = false
+---
+[]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<json-logger:logger doc:name="Show Query" doc:id="2b066fb4-f1df-4a93-a039-0ee626e05028" config-ref="JSON_Logger_Config" message="Show Query" priority="DEBUG" category="com.louisvuitton.technical" tracePoint="BEFORE_REQUEST">
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json indent = false ---
+{
+    query: payload 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<try doc:name="Try" doc:id="0c355f61-7171-48dd-9f57-7d483ecf4f53" >
+			<wsc:consume operation="query" doc:id="ffc5b030-6550-4629-8e17-96c946784be8" config-ref="successfactors-ws-consumer-config-operations" doc:name="Query CompoundEmployee" >
+				<wsc:transport-headers >
+					<wsc:transport-header key="Cookie" value='#["JSESSIONID=" ++ (vars.sessionId) as String]' />
+				</wsc:transport-headers>
+			</wsc:consume>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="5669642f-ef0c-4509-bf94-96d88dc3e1c6" type="WSC:SOAP_FAULT" when='#[error.description contains "Invalid SFAPI session!"]'>
+					<flow-ref doc:name="compound-employee-login-implemenation-flow" doc:id="d8657ad2-02fd-4805-8f30-ad13d9f5da06" name="compound-employee-login-implemenation-flow"/>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<flow-ref doc:name="printDebugPayload" doc:id="40d7126c-7577-4e9e-bd24-8bff42fe3471" name="printDebugPayload"/>
+		<json-logger:logger doc:name="Show Results" doc:id="fd34485d-aa24-45a9-b7d7-b9f313fa2359" config-ref="JSON_Logger_Config" message="Show Results" priority="DEBUG" category="com.louisvuitton.technical" tracePoint="AFTER_REQUEST">
+			<json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json indent = false ---
+{
+    result: vars.jsonDebugPayload
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<flow-ref doc:name="employee-ehr-response-choice-subflow" doc:id="e31bb539-79fa-4a8e-9d07-aeda0786e102" name="employee-ehr-response-choice-subflow" />
+	</sub-flow>
+	<sub-flow name="employee-ehr-response-choice-subflow" doc:id="a4598746-9d6c-449e-95f5-75e0ac7e4122">
+		<choice doc:name="Convert to JSON format based on vars.entity?" doc:id="8690b73e-cf47-43ab-9af5-dff71bcfbd82">
+			<when expression='#[vars.entity == "flexsystem"]'>
+				<ee:transform doc:name="Set Metadata, HasMorePages, SFObjects" doc:id="bdc3c36d-56e4-4cba-b6f5-a44b78ba460f">
+			<ee:message>
+						<ee:set-payload resource="dwl/employeeXMLResponse.dwl" />
+			</ee:message>
+			<ee:variables>
+						<ee:set-variable resource="dwl/hasMorePages.dwl" variableName="hasMorePages" />
+						<ee:set-variable resource="dwl/metadata.dwl" variableName="metadata" />
+			</ee:variables>
+		</ee:transform>
+			</when>
+			<when expression='#[vars.region == "ITA"]'>
+				<ee:transform doc:name="Set Metadata, HasMorePages, SFObjects" doc:id="1e10292a-25e9-4fb9-ace6-93e0f778d067" >
+					<ee:message >
+						<ee:set-payload resource="dwl/employeeJSONResponseItaly.dwl" />
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable resource="dwl/hasMorePages.dwl" variableName="hasMorePages" />
+						<ee:set-variable resource="dwl/metadata.dwl" variableName="metadata" />
+					</ee:variables>
+				</ee:transform>
+				<ee:transform doc:name="Append to queryResult" doc:id="2fd37830-3bbc-47d3-9a01-e55b58325b8a" >
+					<ee:message />
+					<ee:variables >
+						<ee:set-variable variableName="queryResult" ><![CDATA[%dw 2.0
+output application/json indent = false
+---
+vars.queryResult + payload.queryResponse.result.sfobject]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<flow-ref doc:name="employee-ehr-querymore-subflow" doc:id="db492442-fb13-4f7d-b38d-9882621cb5a4" name="employee-ehr-querymore-subflow" />
+			</when>
+			<when expression='#[vars.entity == "global"]'>
+				<ee:transform doc:name="Set Metadata, HasMorePages, SFObjects" doc:id="2e887333-5b87-454f-9448-164b87cb3bc1">
+					<ee:message>
+						<ee:set-payload resource="dwl/employeeXMLResponseGlobal.dwl" />
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable resource="dwl/hasMorePages.dwl" variableName="hasMorePages" />
+						<ee:set-variable resource="dwl/metadata.dwl" variableName="metadata" />
+					</ee:variables>
+				</ee:transform>
+				<ee:transform doc:name="Append to queryResult" doc:id="585c410d-6f01-4fa8-b828-866b7e4d9afd" >
+					<ee:message />
+					<ee:variables >
+						<ee:set-variable variableName="queryResult" ><![CDATA[%dw 2.0
+output application/json indent = false
+---
+vars.queryResult + payload.queryResponse.result.sfobject]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<flow-ref doc:name="employee-ehr-querymore-subflow" doc:id="53054789-53d4-4d32-9132-92515165a9d7" name="employee-ehr-querymore-subflow" />
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Set Metadata, HasMorePages, SFObjects" doc:id="1c727c68-55c6-489d-b5ae-31fc9f58c1d6">
+					<ee:message>
+						<ee:set-payload resource="dwl/employeeJSONResponse.dwl" />
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable resource="dwl/hasMorePages.dwl" variableName="hasMorePages" />
+						<ee:set-variable resource="dwl/metadata.dwl" variableName="metadata" />
+					</ee:variables>
+				</ee:transform>
+				<ee:transform doc:name="Append to queryResult" doc:id="4a7d5094-76c1-4bb8-b165-46f2648bc7d1">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="queryResult"><![CDATA[%dw 2.0
+output application/json indent = false
+---
+vars.queryResult + payload.queryResponse.result.sfobject]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+				<flow-ref doc:name="employee-ehr-querymore-subflow" doc:id="40381684-299b-4219-a5fa-84702683c516" name="employee-ehr-querymore-subflow"/>
+			</otherwise>
+		</choice>
+	</sub-flow>
+	<sub-flow name="employee-ehr-querymore-subflow" doc:id="bc795fe7-a275-4445-aeb3-9308bec6bd4f" >
+		<choice doc:name="More records?" doc:id="647067cc-38e2-4061-8298-bca251f27d1f">
+			<when expression="#[vars.hasMorePages == true]">
+		<ee:transform doc:name="queryMore body" doc:id="e4ce21bd-5201-4929-9109-e434fe83e430">
+					<ee:message>
+								<ee:set-payload resource="dwl/queryMoreBody.dwl" />
+					</ee:message>
+				</ee:transform>
+				<wsc:consume operation="queryMore" doc:id="1b967232-0ea7-4eab-8bf8-d451f6832678" config-ref="successfactors-ws-consumer-config-operations" doc:name="queryMore CompoundEmployee">
+					<wsc:transport-headers>
+						<wsc:transport-header key="Cookie" value='#["JSESSIONID=" ++ (vars.sessionId) as String]'/>
+					</wsc:transport-headers>
+				
+</wsc:consume>
+						<flow-ref doc:name="printDebugPayload" doc:id="1eaf9cc0-b68c-4266-818f-7a54e1d4d479" name="printDebugPayload" />
+				<json-logger:logger doc:name="Querymore Logger" doc:id="be82209e-0f75-4a3a-8d79-bd030ec13905" config-ref="JSON_Logger_Config" message="Querymore Logger" priority="DEBUG" category="com.louisvuitton.technical" tracePoint="AFTER_REQUEST">
+							<json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json indent = false ---
+{
+    queryMoreResult: vars.jsonDebugPayload
+}]]]></json-logger:content>
+						</json-logger:logger>
+						<flow-ref doc:name="employee-ehr-response-choice-subflow" doc:id="6f57f7f1-7266-444e-9d06-d1035d68eee7" name="employee-ehr-response-choice-subflow" />
+			
+
+
+
+</when>
+			<otherwise>
+				<ee:transform doc:name="Final result" doc:id="c20d5deb-7501-4397-9d1e-955ae69603aa">
+					<ee:message>
+						<ee:set-payload resource="dwl/queryMoreResult.dwl" />
+					</ee:message>
+					<ee:variables >
+					</ee:variables>
+				</ee:transform>
+
+			</otherwise>
+		
+</choice>
+	</sub-flow>
+	<sub-flow name="printDebugPayload" doc:id="723559be-dc88-4aac-87ea-d530a57f06e6" >
+		<ee:transform doc:name="convert-to-xml" doc:id="b04a007b-a71a-42ff-9dea-e296d4ba2bf4" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="jsonDebugPayload" ><![CDATA[%dw 2.0
+output application/xml
+---
+{
+    inputData: payload    
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="convert-to-json" doc:id="99dfe385-080b-477a-bebf-db70b5949cf4" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="jsonDebugPayload" ><![CDATA[%dw 2.0
+output application/json duplicateKeyAsArray=true
+---
+vars.jsonDebugPayload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+	</sub-flow>
+</mule>
