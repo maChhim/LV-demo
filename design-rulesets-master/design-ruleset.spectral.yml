@@ -1,0 +1,172 @@
+extends:
+  - "spectral:oas"
+  - "./owasp23-ruleset.spectral.yml"
+
+rules:
+  info-contact: error   
+  info-description: error   
+  api-oas-3:
+    description: You MUST use OpenAPI Specifications (OAS 3x) to describe your API. 
+    severity: error
+    given: $
+    then:
+      field: openapi
+      function: truthy
+  api-http-method:
+    description: You MUST not use HTTP method names in URI (GET, POST, PUT, etc)
+    message: URI contains HTTP method name
+    severity: error
+    given:
+      - $.paths[?(@property && @property.match(
+        "/(get|post|put|delete|patch)[\/A-Z_\-]?" ))]~
+      - $.paths[?(@property && @property.match(
+        "/(create|remove|list)[\/A-Z_\-]?" ))]~
+    then:
+      field: "@key"
+      function: undefined
+  api-api-in-uri:
+    description: You MUST not use “api” word in URI 
+    severity: error
+    given:
+      - $.paths[?(@property && @property.match(
+        "/(api)[\/A-Z_\-]?" ))]~
+    then:
+      field: "@key"
+      function: undefined
+  api-version-in-uri:
+    description: You MUST not use version in URI (v1, v2, ...)
+    severity: error
+    given:
+      - $.paths[?(@property && @property.match(
+        "/(v1|v2|v3)[^v[0-9]+]?" ))]~
+    then:
+      field: "@key"
+      function: undefined  
+  api-has-title:
+    description: "You MUST provide the API name in the title"
+    severity: error
+    given: $.info
+    then:
+      field: title
+      function: truthy
+    documentationUrl: https://swagger.io/specification/#info-object
+  api-description-length:
+    description: "API description MUST be at least 100 characters"
+    severity: error
+    given: $.info
+    then:
+      field: description
+      function: length
+      functionOptions:
+        min: 100
+    documentationUrl: https://swagger.io/specification/#info-object
+  api-protocol-https: 
+    description: "ALL requests MUST go through `https` protocol only"
+    formats:
+      - oas3
+    severity: error
+    message: "Servers MUST be https and no other protocol is allowed."
+    given: $.servers..url
+    then:
+      function: pattern
+      functionOptions:
+        match: "/^https:/"
+  api-resource-kebab-case:
+    description: You MUST use kebab-case for resource names.
+    message: "Resource name MUST be kebab-case (lower-case and separated with hyphens)."
+    severity: error #changed to error
+    given: "$.paths[*]"
+    then:
+      field: "@key"
+      function: casing
+      functionOptions:
+        type: kebab
+  api-query-param-camel-case:
+    description: You MUST use camelCase for query parameters names.
+    message: "Query parameter {{value}} must be camelCase in {{path}}"
+    severity: error
+    given: $..parameters[?(@.in == 'query')].name
+    then:
+      function: casing
+      functionOptions:
+        type: camel
+  api-path-param-camel-case:
+    description: You MUST use camelCase for path parameters names.
+    message: "Path parameter {{value}} MUST be camelCase in {{path}}"
+    severity: error
+    given: $..parameters[?(@.in == 'path')].name
+    then:
+      function: casing
+      functionOptions:
+        type: camel
+  api-headers-pascal-case:
+    description: Headers MUST be Pascal-Case and separated by hyphens 
+    message: "{{value}} {{error}}"
+    severity: error #changed to error
+    given:
+      - $..parameters[?(@.in=="header" && @.name != "client_id" && @.name != "client_secret")].name
+    then:
+      function: casing
+      functionOptions:
+        type: pascal
+        separator:
+          char: "-"
+  api-body-camel-case:
+    description: You MUST use camelCase for each field in request & response body.
+    severity: error #changed to error
+    given:
+    - $.paths[*][*].responses[*].content[*].schema.properties[*]
+    - $.paths[*][*].requestBody.content[*].schema.properties[*]
+    then:
+      field: "@key"
+      function: casing
+      functionOptions:
+        type: camel
+  api-body-has-description:
+    description: You MUST provide description for each field in request & response body.
+    severity: error #changed to error
+    given: $...properties[*]
+    then:
+      field: description 
+      function: truthy 
+  api-body-has-example:
+    description: You MUST provide example value for each field in request & response body.
+    message: You MUST provide example value in {{path}}
+    severity: error
+    given: $...properties[?(@.type == 'string')]
+    then:
+      field: example
+      function: truthy
+  api-body-no-default-value:
+    description: You SHOULD avoid using default values in request and response. 
+    severity: warn
+    recommended: true
+    given: $.components.schemas[?(@.type == 'object')].properties[*]
+    then:
+      field: default
+      function: falsy
+  api-version-format:
+    description: You MUST use vX format for version. v1 for instance (Mulesoft limitation)   
+    severity: error
+    given: $.info.version
+    then:
+      function: pattern
+      functionOptions:
+        match: ^v[0-9]+
+  api-no-array-in-response-body:
+    description: You MUST not return arrays in the response body.
+    severity: error #changed to error
+    given: "$.paths..responses..content.application/json.schema"
+    then:
+      field: type
+      function: pattern
+      functionOptions:
+        notMatch: "array"
+  api-single-hyphen-in-title:
+    description: You MUST use single hyphens only (no double hyphens).
+    severity: error
+    given: "$.info.title"
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: "(--|_)"

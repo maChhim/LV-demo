@@ -1,0 +1,1047 @@
+openapi: "3.0.0"
+info:
+  title: Employee - EHR - sAPI
+  version: v1
+paths:
+
+  /employees:
+    get:
+      description: Retrieve a list of employees
+      parameters:
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+        - $ref: "#/components/parameters/type"
+        - $ref: "#/components/parameters/region"
+        - $ref: "#/components/parameters/queryType"
+        - $ref: "#/components/parameters/lastModifiedDateTime"
+        - $ref: "#/components/parameters/transmission"
+      responses:
+        "200":
+          description: Successful
+          content:
+            application/json:
+              schema:
+                $ref: "/DataType/employee.yaml#/components/schema"
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+          
+  
+
+  /employees/{ID}:
+    get:
+      description: Retrieve an employee by ID
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+        - $ref: "#/components/parameters/queryType"
+      responses:
+        "200":
+          description: Successful
+          content:
+            application/json:
+              schema:
+                $ref: "/DataType/employee.yaml#/components/schema"
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+
+    post:
+      description: Post Employee ID
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      requestBody:
+         content:
+            application/json:
+              example:
+      responses:
+        "200":
+          description: Successful
+          content:
+            application/json:
+              schema:
+                $ref: "/DataType/employeeResponse.yaml#/components/schema"
+
+    put:
+      description: Update Employee by ID /  Update local Payroll ID (EmpCompensation)
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      requestBody:
+         content:
+          application/json:
+            example:   
+      responses:
+        "200":
+          description: Successful
+          content:
+            application/json:
+              schema:
+                $ref: "/DataType/employeeResponse.yaml#/components/schema"
+    
+    patch:
+      description: Partial Update Employee by ID
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      requestBody:
+         content:
+          application/json:
+            example:
+      responses:
+        "200":
+          description: Successful
+          content: {}
+
+  /employees/update:
+    get:
+      deprecated: true
+      description: Retrieve a list of updated employees with pagination
+      parameters:
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+        - $ref: "#/components/parameters/sessionId"
+        - $ref: "#/components/parameters/loginSessionId"
+        - $ref: "#/components/parameters/hasMore"
+        - in: query
+          name: lastModifiedDateTime
+          required: true
+          description: Timestamp of the last update to fetch from.
+          schema:
+            type: string
+            format: date-time 
+            example: '2024-01-14T08:08:23.471Z'
+        - in: query
+          name: payroll
+          required: false
+          description: If true, filters out payloads where pay_group = NON PAYROLL.
+          schema:
+            type: boolean
+            example: true
+        - in: query
+          name: limit
+          required: false
+          description: Limit the number of results returned per page.
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            example: $ref:"#/examples/employees-update"
+      responses:
+        "200":
+          description: Successful operation with paginated list of updated employees.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/employees-data-changes-response"
+          headers :
+             X-Total-Count :
+                description : The total number of items available.
+                schema :
+                   type : integer 
+             Link :
+                description : Contains links for first, prev, next and last pages.
+                schema :
+                   type : string 
+                   format : uri
+
+  /employees/advanced-search:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                outputSegments:
+                  type: array
+                  items:
+                    type: string
+                    enum : 
+                     - person
+                     - personal_information
+                     - address_information
+                     - email_information
+                     - phone_information
+                     - person_relation
+                     - national_id_card
+                     - emergency_contact_primary
+                     - employment_information
+                     - global_assignment_information
+                     - job_information
+                     - compensation_information
+                     - alternative_cost_distribution
+                     - paycompensation_recurring
+                     - payment_information
+                     - job_relation
+                     - personal_documents_information
+                     - EmpCostAssignment
+                     - SecondaryAssignments
+                     - cust_lvmhhappening
+                     - dependent_information
+                     - cust_ContractualClauses
+                     - cust_Allowances
+                     - cust_SocialSecurityInformation
+                inputFilters:   
+                 type: array
+                 items:
+                  type: object
+                  properties:
+                    field: 
+                     type: string
+                     enum :
+                      - LAST_MODIFIED_ON
+                      - START_DATE
+                      - COMPANY_TERRITORY_CODE
+                      - PERSON_ID
+                      - PER_PERSON_UUID
+                      - PERSON_ID_EXTERNAL
+                      - USER_ID
+                      - COMPANY
+                      - EMPLOYEE_CLASS
+                      - DEPARTMENT
+                      - DIVISION
+                      - BUSINESS_UNIT
+                      - LOCATION
+                      - JOB_CODE
+                      - PAY_GROUP
+                      - COMPENSATION_PAY_GROUP
+                      - SNAPSHOT_DATE
+                      - SourceOfRecord
+                      - isContingentWorker
+                      - selectFromDate
+                      - selectToDate
+                      - hiringNotCompleted
+                      - assignment_class
+                      - EFFECTIVE_END_DATE
+                    condition:
+                     type: string
+                     enum:
+                      - "IN"
+                      - "NOT IN"
+                      - "="
+                      - ">="
+                      - ">"
+                      - "<"
+                      - "<="
+                    value: 
+                     type: string
+                    values:
+                     type: array
+                     items:
+                      type : string
+                technicalParameters :
+                 type : object
+                 properties:
+                  maxRows : 
+                   type : integer
+                   description : Limitation at 400 max rows by call
+                   example : 400
+                  resultOptions:
+                    type : string
+                    example : "configuredFieldsOnly"
+                  queryMode:
+                    type: string
+                    example: "delta"
+                querySessionId:
+                 type : string
+                 description : Must be used in case of multiple pages (Response > MaxRow)
+      responses:
+        '200':
+          description: HTTP Status 200
+          content:
+           application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseAdvancedSearch"
+        '401':
+          description: HTTP Status 401
+        '404':
+          description: HTTP Status 404
+     
+  /logExecutionManager:
+    post:
+      description: Log integration status to Execution Manager
+      parameters:
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      requestBody:
+         content:
+          application/json:
+            schema:
+              $ref: "/DataType/executionManager.yaml#/components/schema"
+      responses:
+        "200":
+          description: Successful
+          content: {}
+                  
+  /health:
+    get:
+      parameters:
+      - $ref: "#/components/parameters/client_id"
+      - $ref: "#/components/parameters/client_secret"
+      responses:
+        "200":
+          description: Retrieve API status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/health-example"
+              examples:
+                Response:
+                  value:
+                    code: "200"
+                    apiStatus: "Alive"
+                    downstreamType: "SFTP"
+                    downstreamStatus: "Alive"
+                    timestamp: "2021-01-14T08:08:23.471Z"
+
+  /cities:
+    get:
+      description: Retrieve city by code
+      parameters:
+        - $ref: "#/components/parameters/code"
+        - $ref: "#/components/parameters/country"
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      responses:
+        "200":
+          description: Successful
+          content: {}
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+
+  /picklist:
+    get:
+      description: Retrieve picklist values
+      parameters:
+        - $ref: "#/components/parameters/externalCode"
+        - $ref: "#/components/parameters/picklistId"
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      responses:
+        "200":
+          description: Successful
+          content: {}
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+
+  /degree:
+    get:
+      description: Retrieve degree by userId
+      parameters:
+        - $ref: "#/components/parameters/accept"
+        - $ref: "#/components/parameters/select"
+        - $ref: "#/components/parameters/expand"
+        - $ref: "#/components/parameters/filter"
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      responses:
+        "200":
+          description: Successful
+          content:
+            application/json:
+              schema:
+                $ref: "/DataType/getDegreeResponse.yaml#/components/schema"
+  
+  /workExperience:
+    get:
+      description: Retrieve external work experience by userId
+      parameters:
+        - $ref: "#/components/parameters/filter"
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      responses:
+        "200":
+          description: Successful
+          content: {}
+
+  /legalEntity:
+    get:
+      description: Retrieve legal entity details by externalCode and effective start date.
+      parameters:
+        - $ref: "#/components/parameters/accept"
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      responses:
+        "200":
+          description: Successful
+          content:
+            application/json:
+              schema:
+                $ref: "/DataType/getLegalEntityResponse.yaml#/components/schema"
+
+        
+components:
+  parameters:
+    picklistId:
+      name: picklistId
+      in: query
+      description: Picklist ID
+      required: true
+      schema:
+        type: string
+      example: cust_FRA_Voie
+    externalCode:
+      name: externalCode
+      in: query
+      description: External Code of picklist
+      required: true
+      schema:
+        type: string
+      example: RU
+    code:
+      name: code
+      in: header
+      description: City Identifier
+      required: true
+      schema:
+        type: string
+    country:
+      name: country
+      in: header
+      description: country code
+      required: true
+      schema:
+        type: string
+    id:
+      name: ID
+      in: path
+      description: Employee Identifier
+      required: true
+      schema:
+        type: string
+    client_id:
+      in: header
+      name: client_id
+      required: true
+      schema:
+        type: string
+    client_secret:
+      in: header
+      name: client_secret
+      required: true
+      schema:
+        type: string
+    sessionId:
+      in: header
+      name: sessionId
+      required: false
+      schema:
+        type: string
+    loginSessionId:
+      in: header
+      name: loginSessionId
+      required: false
+      schema:
+        type: string
+    hasMore:
+      in: header
+      name: hasMore
+      required: false
+      schema:
+        type: boolean
+    type:
+      name: type
+      in: header
+      description: Query Identitfier (Hire, Rehire, or Terminated)
+      required: false
+      schema:
+        type: string
+    region:
+      name: region
+      in: header
+      description: Country Code where the Employee works
+      required: false
+      schema:
+        type: string
+    queryType:
+      name: queryType
+      in: header
+      description: Type of Query (delta or period-based)
+      required: false
+      schema:
+        type: string
+      example: period-based
+    lastModifiedDateTime:        
+      name: lastModifiedDateTime
+      in: query
+      description: Limits the employees retrieved based on last modifed datetime
+      required: false
+      schema:
+        type: string
+        pattern: '^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])T(0[0-9]|1[0-9]|2[0-3]):(0[0-9]|[1-5][0-9]):(0[0-9]|[1-5][0-9])Z$'
+    transmission:
+      name: transmission
+      in: header
+      description: Delta (previous segments or fields) employee data (segments,fields)
+      required: false
+      schema:
+        type: string
+        enum: ["segmentsOnly", "fieldsOnly", ""]
+    accept:
+      name: Accept
+      in: header
+      description: Response type
+      required: false
+      schema:
+        type: string
+        example: application/json
+    select:
+      name: select
+      in: query
+      description: Select external code for degree
+      required: true
+      schema:
+        type: string
+        example: degreeNav/externalCode
+    expand:
+      name: expand
+      in: query
+      description: Expand degreeNav to get degree external code
+      required: true
+      schema:
+        type: string
+        example: degreeNav
+    filter:
+      name: filter
+      in: query
+      description: Filter by userId
+      required: true
+      schema:
+        type: string
+        example: userId eq 111111
+  responses:
+    "trait_client-id-required_401":
+      description: "Unauthorized or invalid client application credentials"
+    "trait_client-id-required_500":
+      description: "Bad response from authorization server, or WSDL SOAP Fault error"
+  schemas:
+    ResponseAdvancedSearch:
+     type: object
+     properties:
+      employees:
+       type: array
+       items:
+        type: object
+        properties:
+           person:
+             type: object
+             properties:
+              personal_information:
+               type: array
+               items :
+                type : object
+              address_information:
+               type: array
+               items :
+                type : object
+              email_information:
+               type: array
+               items :
+                type : object                  
+              phone_information:
+               type: array
+               items :
+                type : object
+              person_relation :
+               type : array
+               items :
+                type : object                
+              employment_information :
+               type : array
+               items:
+                type : object 
+                properties :
+                  global_assignment_information:
+                   type: array
+                   items :
+                    type : object                 
+                  job_information:
+                   type: array
+                   items :
+                    type : object
+                  alternative_cost_distribution :
+                   type : array
+                   items:
+                    type : object
+                  compensation_information:
+                   type: array
+                   items :
+                    type : object
+                    properties:
+                     paycompensation_recurring:
+                      type : array
+                      items :
+                       type : object
+                  job_relation :
+                   type : array
+                   items :
+                    type : object
+                  personal_documents_information :
+                   type : array
+                   items :
+                    type : object                  
+                  cust_lvmhhappening : 
+                   type : object
+                  dependent_information : 
+                   type : object
+                  cust_ContractualClauses : 
+                   type : object
+                  cust_Allowances : 
+                   type : object
+                  cust_SocialSecurityInformation:
+                   type: object
+              national_id_card :
+               type : array
+               items :
+                type : object
+              SecondaryAssignments :
+               type : array
+               items :
+                type : object                
+              emergency_contact_primary : 
+               type : array
+               items:
+                type : object
+      technicalResponse:
+       type: object
+       properties :
+        hasMoreResult :
+         type : boolean
+        querySessionId:
+         type : string
+                
+    health-example:
+      type: object
+      properties:
+        code: 
+          type: string
+        apiStatus:
+          type: string
+        downstreamType: 
+          type: string
+        downstreamStatus: 
+          type: string
+        timestamp: 
+          type: string
+
+    update-employee-local-id-example:
+      type: object
+      properties:
+        __metadata:
+          $ref: "#/components/schemas/metadata"
+        payrollId:
+          description: Local payroll ID
+          type: string
+        customString11:
+          description: EEID for US
+          type: string
+        customString4:
+          description: Local job catalog for France
+          type: string
+    metadata:
+        type: object
+        properties:
+          uri: 
+            type: string
+            example: "EmpCompensation(seqNumber=1, startDate=datetime'2023-01-25T00:00:00', userId='998401')"
+
+    paginatedEmployeeResponse:
+       type : object 
+       properties :
+          data:
+            description: List of Employee data
+            type: array
+            items:
+              $ref: "/DataType/employee.yaml"
+          meta:
+            description: Page and item count
+            type: object
+            properties:
+              currentPageNumber:
+                type: integer
+              totalPageCount:
+                  type: integer
+              totalItemCount:
+                  type: integer
+    
+    employees-data-changes-response:  
+     type: object
+     properties:
+      queryResponse: 
+          type: object
+          properties: 
+            result: 
+              type: object
+              properties: 
+                sfobject: 
+                  type: array
+                  items: 
+                    type: object
+                    properties: 
+                      id: 
+                        type: string
+                        example: "46952"
+                      type: 
+                        type: string
+                        example: CompoundEmployee
+                      person: 
+                        type: object
+                        properties: 
+                          created_on_timestamp: 
+                            type: string
+                            format: date-time
+                            example: 2024-02-23T08:53:40.000Z
+                          last_modified_on: 
+                            type: string
+                            format: date-time
+                            example: 2024-02-23T10:19:52.000Z
+                          logon_user_id: 
+                            type: string
+                            example: "306385"
+                          logon_user_is_active: 
+                            type: string
+                            example: "true"
+                          logon_user_name: 
+                            type: string
+                            example: Angecorrea
+                          per_person_uuid: 
+                            type: string
+                            example: 8C9CA3F5D24D491E9E6B1C218E135267
+                          person_id: 
+                            type: string
+                            example: "46952"
+                          person_id_external: 
+                            type: string
+                            example: LVM306385
+                          personal_information: 
+                            type: object
+                            properties: 
+                              created_on_timestamp: 
+                                type: string
+                                format: date-time
+                                example: 2024-02-23T08:53:42.000Z
+                              end_date: 
+                                type: string
+                                example: 9999-12-31
+                              first_name: 
+                                type: string
+                                example: ANGÉLINE
+                              gender: 
+                                type: string
+                                example: F
+                              last_modified_on: 
+                                type: string
+                                format: date-time
+                                example: 2024-02-23T10:03:03.000Z
+                              last_name: 
+                                type: string
+                                example: CORREA
+                              last_name_alt1: 
+                                type: string
+                                example: Jean
+                              first_name_alt1: 
+                                type: string
+                                example: Jean
+                              middle_name: 
+                                type: string
+                                example: RE
+                              start_date: 
+                                type: string
+                                format: date
+                                example: 2024-02-23
+                          phone_information: 
+                            type: object
+                            properties: 
+                              country_code: 
+                                type: string
+                                example: ""
+                              isPrimary: 
+                                type: string
+                                example: "false"
+                              phone_number: 
+                                type: string
+                                example: "48998908"
+                              phone_type: 
+                                type: string
+                                example: E
+                          email_information: 
+                            type: object
+                            properties: 
+                              isPrimary: 
+                                type: string
+                                example: "false"
+                              email_address: 
+                                type: string
+                                example: rose-madeleine.sarr.ext+angeline.correa@louisvuitton.com
+                              email_type: 
+                                type: string
+                                example: P
+                          employment_information: 
+                              type: object
+                              properties: 
+                                assignment_class: 
+                                  type: string
+                                  example: ST
+                                assignment_uuid: 
+                                  type: string
+                                  example: 6F6F95425CB94830BD0EE17CEEAD0CB8
+                                
+                                originalStartDate: 
+                                  type: string
+                                  example: 
+                                lastDateWorked: 
+                                  type: string
+                                  format: date
+                                  example: 2000-07-17
+                                
+                                assignementIdExternal: 
+                                  type: string
+                                  example: 
+                                created_on_timestamp: 
+                                  type: string
+                                  format: date-time
+                                  example: 2022-06-25T09:33:42.000Z
+                                custom_date1: 
+                                  type: string
+                                  format: date
+                                  example: 2000-07-17
+                                employment_id: 
+                                  type: string
+                                  example: "1774"
+                                last_modified_by: 
+                                  type: string
+                                  example: ADMIN_WDUSSEAUX
+                                last_modified_on: 
+                                  type: string
+                                  format: date-time
+                                  example: 2022-06-28T14:54:27.000Z
+                                seniorityDate: 
+                                  type: string
+                                  format: date
+                                  example: 2000-07-17
+                                start_date: 
+                                  type: string
+                                  format: date
+                                  example: 2015-12-01
+                                user_id: 
+                                  type: string
+                                  example: LVM033529
+                                global_assignment_information: 
+                                  type: object
+                                  properties: 
+                                    assignment_class: 
+                                      type: string
+                                      example: GA
+                                    assignment_type: 
+                                      type: string
+                                      example: S
+                                    created_on_timestamp: 
+                                      type: string
+                                      format: date-time
+                                      example: 2024-02-28T13:31:51.000Z
+                                    end_date: 
+                                      type: string
+                                      format: date
+                                      example: 2024-02-27
+                                    last_modified_on: 
+                                      type: string
+                                      format: date-time
+                                      example: 2024-02-28T15:04:15.000Z
+                                    planned_end_date: 
+                                      type: string
+                                      format: date
+                                      example: 2024-08-30
+                                    start_date: 
+                                      type: string
+                                      format: date
+                                      example: 2024-02-01
+                                job_information: 
+                                  type: object
+                                  properties: 
+                                    business_unit: 
+                                      type: string
+                                      example: RETAIL
+                                    company: 
+                                      type: string
+                                      example: MC10
+                                    company_territory_code: 
+                                      type: string
+                                      example: FRA
+                                    contract_end_date: 
+                                      type: string
+                                      format: date
+                                      example: 2024-12-31
+                                    contract_type: 
+                                      type: string
+                                      example: FIXED_OC
+                                    cost_center: 
+                                      type: string
+                                      example: D01_MC10
+                                    
+                                    created_on_timestamp: 
+                                      type: string
+                                      format: date-time
+                                      example: 2024-02-23T08:53:42.000Z
+                                    custom_date3: 
+                                      type: string
+                                      format: date
+                                      example: 2024-02-23
+                                    custom_date4: 
+                                      type: string
+                                      format: date
+                                      example: 2024-02-23
+                                    custom_string11: 
+                                      type: string
+                                      example: SELLING
+                                    custom_string3: 
+                                      type: string
+                                      format: nullable
+                                    custom_string15: 
+                                      type: string
+                                      example: FRA_19020012
+                                    custom_string5: 
+                                      type: string
+                                      example: OC
+                                    custom_string7: 
+                                      type: string
+                                      example: RET_06
+                                    
+                                    job_code: 
+                                      type: string
+                                      example: MAN_05_01
+                                    local_job_title: 
+                                      type: string
+                                      example: 
+                                    custom_string98: 
+                                      type: string
+                                      format: nullable
+                                    department: 
+                                      type: string
+                                      example: RET_EMEA_France
+                                    division: 
+                                      type: string
+                                      example: RET_EMEA
+                                    
+                                    emplStatus: 
+                                      type: string
+                                      example: A
+                                    end_date: 
+                                      type: string
+                                      example: 9999-12-31
+                                    event_reason: 
+                                      type: string
+                                      example: HIR_NPS
+                                    last_modified_on: 
+                                      type: string
+                                      format: date-time
+                                      example: "2024-02-23T09:56:41.000Z"
+                                    
+                                    location: 
+                                      type: string
+                                      example: A91
+                                    
+                                    manager_person_id_external: 
+                                      type: string
+                                      example: LVM007623
+                                    manager_id: 
+                                      type: string
+                                      example: LVM007623
+                                    positionEntryDate: 
+                                      type: string
+                                      format: date
+                                      example: 2024-02-23
+                                    start_date: 
+                                      type: string
+                                      format: date
+                                      example: 2024-02-23
+                                compensation_information: 
+                                  type: object
+                                  properties: 
+                                    payroll_id: 
+                                      type: string
+                                      example: "126209"
+                                    custom_string3: 
+                                      type: string
+                                      example: "COM_NO_ELIGIBLE"
+                                job_relation: 
+                                  type: object
+                                  properties: 
+                                    created_on_timestamp: 
+                                      type: string
+                                      format: date-time
+                                      example: 2024-02-23T09:56:41.000Z
+                                    end_date: 
+                                      type: string
+                                      example: 9999-12-31
+                                    last_modified_on: 
+                                      type: string
+                                      format: date-time
+                                      example: 2024-02-23T09:56:41.000Z
+                                    relationship_type: 
+                                      type: string
+                                      example: hr manager
+                                    start_date: 
+                                      type: string
+                                      format: date
+                                      example: 2024-02-23
+                                    user_id: 
+                                      type: string
+                                      example: "098389"
+                                SecondaryAssignmentPeriod: 
+                                  type: object
+                                  properties: 
+                                    createdDate: 
+                                      type: string
+                                      format: date-time
+                                      example: 2024-02-28T16:12:30.000Z
+                                    effectiveEndDate: 
+                                      type: string
+                                      example: 9999-12-31
+                                    effectiveStartDate: 
+                                      type: string
+                                      format: date
+                                      example: 2024-04-01
+                                    lastModifiedDate: 
+                                      type: string
+                                      format: date-time
+                                      example: 2024-02-28T16:12:30.000Z
+                                SecondaryAssignments: 
+                                  type: object
+                                  properties: 
+                                    createdDate: 
+                                      type: string
+                                      format: date-time
+                                      example: 2024-02-28T16:12:30.000Z
+                                    effectiveEndDate: 
+                                      type: string
+                                      example: 9999-12-31
+                                    effectiveStartDate: 
+                                      type: string
+                                      format: date
+                                      example: 2024-04-01
+                                    lastModifiedDate: 
+                                      type: string
+                                      format: date-time
+                                      example: 2024-02-28T16:12:30.000Z
+                                execution_timestamp: 
+                                  type: string
+                                  format: date-time
+                                  example: 2024-03-08T17:35:36.000Z
+                                version_id: 
+                                  type: string
+                                  example: 2311P0
+                          
+                      sessionId: 
+                        type: string
+                        example: DEXXXXXXX2311P0
+                      loginSessionId: 
+                        type: string
+                        example: DEXXXXXXX2311P0
+                      hasMore: 
+                        type: string
+                        example: "true"
