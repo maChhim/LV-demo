@@ -1,42 +1,34 @@
-
-# Dummy - sAPI
+# <API Name>
 
 ## Overview
-
-The Dummy - EHR - sAPI enables a user to do the following:
-
-**Short API Name**: 
+- List and describe all APIs and their exposed endpoints in a table format
+- Short API Name: (if present in the code)
 
 ## Environment and Testing
 
 ### URLs
-
-- DEV : 
-- INT :
+- DEV: (extract if found in configs/properties)
+- INT: (extract if found in configs/properties)
 
 ## Security and Policies
 
-
 ### Security
-
-1. Authentication : 
+1. Authentication: (explain the authentication used: Basic Auth, OAuth2, Client ID/Secret, etc.)
 
 ### Policies
-
+- List the policies (if present in the code or deployment file)
 
 ## Backend Information
 
-### Backend name :
+### Backend Name:
+- (Name of the backend system if identifiable in configs/properties)
 
-### Backend Exchange URL Name :
+### Backend Exchange Asset Name:
+- (Name of the Exchange asset if defined)
 
-NA
+### Backend URLs:
+- DEV: (backend DEV URL if present)
+- INT: (backend INT URL if present)
 
-### Backend URL’s:
-
-DEV: 
-
-INT: 
-
-### Backend Authentication :
- 
+### Backend Authentication:
+- (Detail how MuleSoft calls the backend: Basic Auth, MTLS, etc.)
