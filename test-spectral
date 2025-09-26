@@ -1,0 +1,510 @@
+openapi: "3.0.0"
+info:
+  title: Employee - EHR - sAPI
+  version: v1
+  description: |
+    This OpenAPI 3.0 specification defines a RESTful API for managing Employee Electronic Health Records (EHR) data. The API provides endpoints for retrieving, updating, and searching employee records, along with auxiliary services like health checks and picklist management.
+
+    ## Key Features
+    - **CRUD Operations**: Full support for Create, Read, Update, and Delete operations on employee records
+    - **Advanced Search**: Complex query capabilities with multiple filter parameters
+    - **Pagination Support**: Efficient handling of large datasets through pagination
+    - **Health Check**: Endpoint to verify API status
+    - **Picklist Management**: Access to standardized dropdown values
+
+    ## Authentication
+    All endpoints require client credentials (client_id and client_secret) for authentication.
+
+    ## Error Handling
+    The API returns appropriate HTTP status codes for different error scenarios, including:
+    - 401 Unauthorized: Missing or invalid credentials
+    - 404 Not Found: Invalid request
+    - 400 Bad Request: Invalid input data
+    - 500 Internal Server Error: Server-side issues
+  contact:
+    name: API Support Team
+    email: support@example.com
+    url: https://example.com/support
+  license:
+    name: Proprietary License
+    url: https://example.com/license
+servers:
+  - url: https://api.example.com/v1
+    description: Production environment
+  - url: https://staging-api.example.com/v1
+    description: Staging environment
+paths:
+  /employees:
+    get:
+      tags:
+        - Employees
+      summary: Retrieve a list of employees
+      description: Returns a paginated list of employee records with optional filtering
+      operationId: getEmployees
+      parameters:
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+        - $ref: "#/components/parameters/type"
+        - $ref: "#/components/parameters/region"
+        - $ref: "#/components/parameters/queryType"
+        - $ref: "#/components/parameters/lastModifiedDateTime"
+        - $ref: "#/components/parameters/transmission"
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "/DataType/employee.yaml#/components/schema"
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+    post:
+      tags:
+        - Employees
+      summary: Create a new employee record
+      description: Adds a new employee to the system
+      operationId: createEmployee
+      parameters:
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "/DataType/employee.yaml#/components/schema"
+      responses:
+        "201":
+          description: Employee created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "/DataType/employee.yaml#/components/schema"
+        "400":
+          description: Invalid input data
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+  /employees/{ID}:
+    get:
+      tags:
+        - Employees
+      summary: Retrieve an employee by ID
+      description: Returns detailed information for a specific employee
+      operationId: getEmployeeById
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+        - $ref: "#/components/parameters/queryType"
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "/DataType/employee.yaml#/components/schema"
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+        "404":
+          description: Employee not found
+    put:
+      tags:
+        - Employees
+      summary: Update an existing employee
+      description: Replaces the entire employee record with the provided data
+      operationId: updateEmployee
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "/DataType/employee.yaml#/components/schema"
+      responses:
+        "200":
+          description: Employee updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "/DataType/employee.yaml#/components/schema"
+        "400":
+          description: Invalid input data
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+        "404":
+          description: Employee not found
+    patch:
+      tags:
+        - Employees
+      summary: Partially update an employee
+      description: Updates specific fields of an employee record
+      operationId: partialUpdateEmployee
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "/DataType/employee.yaml#/components/schema"
+      responses:
+        "200":
+          description: Employee partially updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "/DataType/employee.yaml#/components/schema"
+        "400":
+          description: Invalid input data
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+        "404":
+          description: Employee not found
+    delete:
+      tags:
+        - Employees
+      summary: Delete an employee
+      description: Removes an employee record from the system
+      operationId: deleteEmployee
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      responses:
+        "204":
+          description: Employee deleted successfully
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+        "404":
+          description: Employee not found
+  /employees/advanced-search:
+    post:
+      tags:
+        - Employees
+      summary: Advanced search for employees
+      description: Performs a complex search across multiple employee attributes with filtering capabilities
+      operationId: advancedSearchEmployees
+      parameters:
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Search query string
+                filters:
+                  type: object
+                  description: Filter criteria
+                  properties:
+                    region:
+                      type: string
+                      description: Region filter
+                    type:
+                      type: string
+                      description: Employee type filter
+                    lastModifiedDateTime:
+                      type: string
+                      format: date-time
+                      description: Last modified date filter
+                    queryType:
+                      type: string
+                      description: Query type filter
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  employees:
+                    type: array
+                    items:
+                      $ref: "/DataType/employee.yaml#/components/schema"
+                  technicalResponse:
+                    type: object
+                    properties:
+                      hasMore:
+                        type: boolean
+                        description: Indicates if more results are available
+                      querySessionId:
+                        type: string
+                        description: Session ID for pagination
+        "400":
+          description: Invalid input data
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health check
+      description: Returns the status of the API service
+      operationId: healthCheck
+      responses:
+        "200":
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [Alive, Dead]
+                  timestamp:
+                    type: string
+                    format: date-time
+  /picklist:
+    get:
+      tags:
+        - Reference Data
+      summary: Retrieve picklist values
+      description: Returns standardized dropdown values for various fields
+      operationId: getPicklistValues
+      parameters:
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+        - name: type
+          in: query
+          description: Type of picklist to retrieve
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  values:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                        description:
+                          type: string
+        "400":
+          description: Invalid input data
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+  /cities:
+    get:
+      tags:
+        - Reference Data
+      summary: Retrieve city details
+      description: Returns information about cities
+      operationId: getCities
+      parameters:
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+        - name: country
+          in: query
+          description: Country code
+          required: true
+          schema:
+            type: string
+        - name: code
+          in: query
+          description: City code
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "/DataType/city.yaml#/components/schema"
+        "400":
+          description: Invalid input data
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+  /degree:
+    get:
+      tags:
+        - Reference Data
+      summary: Retrieve degree information
+      description: Returns information about educational degrees
+      operationId: getDegrees
+      parameters:
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "/DataType/degree.yaml#/components/schema"
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+  /workExperience:
+    get:
+      tags:
+        - Reference Data
+      summary: Retrieve work experience information
+      description: Returns information about work experience
+      operationId: getWorkExperience
+      parameters:
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "/DataType/workExperience.yaml#/components/schema"
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+  /legalEntity:
+    get:
+      tags:
+        - Reference Data
+      summary: Retrieve legal entity information
+      description: Returns information about legal entities
+      operationId: getLegalEntity
+      parameters:
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "/DataType/legalEntity.yaml#/components/schema"
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+  /logExecutionManager:
+    post:
+      tags:
+        - System
+      summary: Log execution status
+      description: Logs the execution status of an operation
+      operationId: logExecutionStatus
+      parameters:
+        - $ref: "#/components/parameters/client_id"
+        - $ref: "#/components/parameters/client_secret"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                operation:
+                  type: string
+                  description: Name of the operation
+                status:
+                  type: string
+                  description: Status of the operation
+                details:
+                  type: object
+                  description: Additional details about the operation
+      responses:
+        "200":
+          description: Execution status logged successfully
+        "400":
+          description: Invalid input data
+        "401":
+          $ref: "#/components/responses/trait_client-id-required_401"
+components:
+  schemas:
+    Employee:
+      $ref: "/DataType/employee.yaml#/components/schema"
+    City:
+      $ref: "/DataType/city.yaml#/components/schema"
+    Degree:
+      $ref: "/DataType/degree.yaml#/components/schema"
+    WorkExperience:
+      $ref: "/DataType/workExperience.yaml#/components/schema"
+    LegalEntity:
+      $ref: "/DataType/legalEntity.yaml#/components/schema"
+  parameters:
+    client_id:
+      name: client_id
+      in: header
+      description: Client ID for authentication
+      required: true
+      schema:
+        type: string
+    client_secret:
+      name: client_secret
+      in: header
+      description: Client secret for authentication
+      required: true
+      schema:
+        type: string
+    id:
+      name: ID
+      in: path
+      description: Employee ID
+      required: true
+      schema:
+        type: string
+    type:
+      name: type
+      in: query
+      description: Type of employee
+      schema:
+        type: string
+    region:
+      name: region
+      in: query
+      description: Region filter
+      schema:
+        type: string
+    queryType:
+      name: queryType
+      in: query
+      description: Type of query
+      schema:
+        type: string
+    lastModifiedDateTime:
+      name: lastModifiedDateTime
+      in: query
+      description: Last modified date filter
+      schema:
+        type: string
+        format: date-time
+    transmission:
+      name: transmission
+      in: query
+      description: Transmission type
+      schema:
+        type: string
+  responses:
+    trait_client-id-required_401:
+      description: Client ID is required for authentication
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Client ID is required for authentication"
+              code:
+                type: string
+                example: "AUTH_001"
+              timestamp:
+                type: string
+                format: date-time
+                example: "2023-01-01T12:00:00Z"
