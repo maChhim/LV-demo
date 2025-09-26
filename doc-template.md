@@ -5,7 +5,7 @@
 
 The Dummy - EHR - sAPI enables a user to do the following:
 
-**Short API Name**: dummy-sapi
+**Short API Name**: 
 
 ## Environment and Testing
 
